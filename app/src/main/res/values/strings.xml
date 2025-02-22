@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">iot-bluetooth-instant-messenger-android-2024</string>
+    <string name="app_name">Iot Bluetooth instant messenger</string>
+    <string name="back_description">Back</string>
+    <string name="some_error_occurred">Some Error Occurred</string>
 </resources>

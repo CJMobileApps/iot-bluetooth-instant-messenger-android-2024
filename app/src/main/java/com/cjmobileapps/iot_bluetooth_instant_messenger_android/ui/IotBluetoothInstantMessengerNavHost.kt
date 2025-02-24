@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home.HomeUi
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home.viewemodel.HomeViewModel
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home.viewemodel.HomeViewModelImpl
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.scan_bluetooth.ScanBluetoothUi
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
@@ -18,8 +19,8 @@ fun NavigationGraph(
     coroutineScope: CoroutineScope,
     snackbarHostState: SnackbarHostState,
 ) {
-    NavHost(navController = navController, startDestination = NavItem.Houses.navRoute) {
-        composable(NavItem.Houses.navRoute) {
+    NavHost(navController = navController, startDestination = NavItem.Home.navRoute) {
+        composable(NavItem.Home.navRoute) {
             val homeViewModel: HomeViewModel = hiltViewModel<HomeViewModelImpl>()
 
             HomeUi(
@@ -29,6 +30,13 @@ fun NavigationGraph(
                 snackbarHostState = snackbarHostState,
             )
         }
+
+        composable(NavItem.ScanBluetooth.navRoute) {
+
+            ScanBluetoothUi(
+                navController = navController
+            )
+        }
     }
 }
 
@@ -36,5 +44,11 @@ sealed class NavItem(
     val navRoute: String,
     val arguments: List<NamedNavArgument> = emptyList(),
 ) {
-    data object Houses : NavItem(navRoute = "nav_houses")
+    data object Home : NavItem(navRoute = "nav_home")
+
+    data object ScanBluetooth : NavItem(navRoute = "nav_scan_bluetooth") {
+        fun getNavRouteWithArguments(): String {
+            return "nav_scan_bluetooth"
+        }
+    }
 }

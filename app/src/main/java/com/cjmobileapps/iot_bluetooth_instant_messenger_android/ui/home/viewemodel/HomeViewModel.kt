@@ -4,12 +4,12 @@ interface HomeViewModel {
     fun getState(): HomeViewModelImpl.HomeState
 
     fun getSnackbarState(): HomeViewModelImpl.HomeSnackbarState
-//
-//    fun getHousesNavRouteUiState(): HousesViewModelImpl.HousesNavRouteUi
 
     fun resetSnackbarState()
 
-//    fun resetNavRouteUiToIdle()
+    fun getHomeNavRouteUiState(): HomeViewModelImpl.HomeNavRouteUi
 
-//    fun goToPlayersListUi(houseName: String)
+    fun resetNavRouteUiToIdle()
+
+    fun goToScanBluetoothUi()
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material3.Button
@@ -102,10 +103,10 @@ fun HomeLoadedUi(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // TODO make this button more square and add bluetooth Icon
         Button(
             modifier = Modifier.fillMaxWidth(),
-            onClick = {  }) {
+            shape = RoundedCornerShape(4.dp),
+            onClick = { homeViewModel.goToScanBluetoothUi() }) {
             Icon(
                 imageVector = Icons.Default.Bluetooth,
                 contentDescription = "Bluetooth"
@@ -115,14 +116,13 @@ fun HomeLoadedUi(
         }
     }
 
-    //todo go to blank connected chat screen
-//    when (val navigateRouteUiValue = housesViewModel.getHousesNavRouteUiState()) {
-//        is HousesViewModelImpl.HousesNavRouteUi.Idle -> {}
-//        is HousesViewModelImpl.HousesNavRouteUi.GoToPlayerListUi -> {
-//            navController.navigate(navigateRouteUiValue.getNavRouteWithArguments())
-//            housesViewModel.resetNavRouteUiToIdle()
-//        }
-//    }
+    when (val navigateRouteUiValue = homeViewModel.getHomeNavRouteUiState()) {
+        is HomeViewModelImpl.HomeNavRouteUi.Idle -> {}
+        is HomeViewModelImpl.HomeNavRouteUi.GoToScanBluetoothUi -> {
+            navController.navigate(navigateRouteUiValue.getNavRoute())
+            homeViewModel.resetNavRouteUiToIdle()
+        }
+    }
 }
 
 // TODO add android previews

@@ -1,5 +1,7 @@
 package com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home
 
+import android.Manifest
+import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -27,9 +30,15 @@ import com.cjmobileapps.iot_bluetooth_instant_messenger_android.R
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.IotBluetoothInstantMessengerTopAppBar
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home.viewemodel.HomeViewModel
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home.viewemodel.HomeViewModelImpl
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.permissions.getBluetoothMultiplePermissionsState
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.permissions.getBluetoothPermission
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.MultiplePermissionsState
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeUi(
     navController: NavController,
@@ -37,6 +46,9 @@ fun HomeUi(
     coroutineScope: CoroutineScope,
     snackbarHostState: SnackbarHostState,
 ) {
+    val context = LocalContext.current
+    val bluetoothPermissionsState = getBluetoothMultiplePermissionsState()
+
     Scaffold(
         topBar = { IotBluetoothInstantMessengerTopAppBar(navController) },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -49,7 +61,30 @@ fun HomeUi(
                         homeViewModel = homeViewModel,
                         homeLoadedState = state,
                         navController = navController,
+                        coroutineScope = coroutineScope,
+                        context = context,
+                        bluetoothPermissionsState = bluetoothPermissionsState,
                     )
+
+                    if(state.checkBluetoothPermissions.value) {
+                        LaunchedEffect(
+                            key1 = bluetoothPermissionsState.allPermissionsGranted,
+                            key2 = bluetoothPermissionsState.shouldShowRationale
+                        ) {
+                            getBluetoothPermission(
+                                onBluetoothGranted = {
+                                    homeViewModel.goToScanBluetoothUi()
+                                    homeViewModel.resetCheckBluetoothPermissions()
+                                },
+                                onBluetoothDenied = { error ->
+                                    homeViewModel.showBluetoothErrorSnackbar(error)
+                                    homeViewModel.resetCheckBluetoothPermissions()
+                                },
+                                coroutineScope = coroutineScope,
+                                bluetoothPermissionsState = bluetoothPermissionsState,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -89,12 +124,15 @@ fun HomeSnackbar(
     }
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeLoadedUi(
     modifier: Modifier,
     homeViewModel: HomeViewModel,
     homeLoadedState: HomeViewModelImpl.HomeState.HomeLoadedState,
     navController: NavController,
+    coroutineScope: CoroutineScope,
+    context: Context,
 ) {
     Column(
         modifier = modifier
@@ -106,7 +144,9 @@ fun HomeLoadedUi(
         Button(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(4.dp),
-            onClick = { homeViewModel.goToScanBluetoothUi() }) {
+            onClick = {
+               homeViewModel.checkBluetoothPermissions()
+            }) {
             Icon(
                 imageVector = Icons.Default.Bluetooth,
                 contentDescription = "Bluetooth"

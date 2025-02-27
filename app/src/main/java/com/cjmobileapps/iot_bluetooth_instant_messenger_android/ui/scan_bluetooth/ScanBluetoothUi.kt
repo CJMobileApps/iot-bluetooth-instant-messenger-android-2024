@@ -267,4 +267,3 @@ fun DeviceItem(device: BluetoothDevice, context: Context) {
     }
 }
 
-

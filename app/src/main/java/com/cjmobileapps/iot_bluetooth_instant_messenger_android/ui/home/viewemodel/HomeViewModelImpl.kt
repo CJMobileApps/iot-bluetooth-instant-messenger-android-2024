@@ -18,6 +18,10 @@ class HomeViewModelImpl @Inject constructor() : ViewModel(), HomeViewModel {
 
     override fun getSnackbarState() = snackbarState.value
 
+    override fun showBluetoothErrorSnackbar(errorMessage: String?) {
+        snackbarState.value = HomeSnackbarState.ShowGenericError(errorMessage)
+    }
+
     override fun resetSnackbarState() {
         snackbarState.value = HomeSnackbarState.Idle
     }
@@ -40,8 +44,22 @@ class HomeViewModelImpl @Inject constructor() : ViewModel(), HomeViewModel {
         state.homeNavRouteUi.value = HomeNavRouteUi.GoToScanBluetoothUi
     }
 
+    override fun checkBluetoothPermissions() {
+        val state = getState()
+        if (state !is HomeState.HomeLoadedState) return
+        state.checkBluetoothPermissions.value = true
+    }
+
+    override fun resetCheckBluetoothPermissions() {
+        val state = getState()
+        if (state !is HomeState.HomeLoadedState) return
+        state.checkBluetoothPermissions.value = false
+
+    }
+
     sealed class HomeState {
         data class HomeLoadedState(
+            val checkBluetoothPermissions: MutableState<Boolean> = mutableStateOf(false),
             val homeNavRouteUi: MutableState<HomeNavRouteUi> = mutableStateOf(HomeNavRouteUi.Idle),
         ): HomeState()
     }

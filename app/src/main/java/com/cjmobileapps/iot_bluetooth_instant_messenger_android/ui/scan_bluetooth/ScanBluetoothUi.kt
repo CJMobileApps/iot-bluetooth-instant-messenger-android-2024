@@ -85,90 +85,9 @@ fun BluetoothScreen() {
     var isScanning by remember { mutableStateOf(false) }
     val foundDevices = remember { mutableStateListOf<BluetoothDevice>() }
 
-    // Permission handling for Bluetooth and Location
-    var allPermissionsGranted = false
-
-    //TODO add permissions check in own wrapper
-    val requestPermissionsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        allPermissionsGranted = permissions[Manifest.permission.BLUETOOTH_SCAN] == true &&
-                permissions[Manifest.permission.BLUETOOTH_CONNECT] == true &&
-                permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
-
-        if (allPermissionsGranted) {
-            Toast.makeText(context, "Permissions granted", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(context, "Permissions denied", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    val enableBluetoothLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Log.d("BLE", "Bluetooth enabled")
-            Toast.makeText(context, "Bluetooth Enabled", Toast.LENGTH_SHORT).show()
-        } else {
-            Log.e("BLE", "Bluetooth enabling failed or canceled")
-            Toast.makeText(context, "Bluetooth Enable Failed", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    // Request permissions for Bluetooth and Location
-    LaunchedEffect(context) {
-        //TODO seperate these two
-        if (ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.BLUETOOTH_SCAN
-            ) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestPermissionsLauncher.launch(
-                arrayOf(
-                    Manifest.permission.BLUETOOTH_SCAN,
-                    Manifest.permission.BLUETOOTH_CONNECT,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                )
-            )
-        }
-    }
-
-    // Check and request Bluetooth enablement
-    if (bluetoothAdapter != null && !bluetoothAdapter.isEnabled) {
-        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-        enableBluetoothLauncher.launch(enableBtIntent)
-    } else {
-        Toast.makeText(context, "Bluetooth is already enabled", Toast.LENGTH_SHORT).show()
-    }
-
     val scanCallback = remember {
         object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
-
-                //TODO add this in boolean method wrapper for below
-//                if (ActivityCompat.checkSelfPermission(
-//                        this,
-//                        Manifest.permission.BLUETOOTH_CONNECT
-//                    ) != PackageManager.PERMISSION_GRANTED
-//                ) {
-//                    // TODO: Consider calling
-//                    //    ActivityCompat#requestPermissions
-//                    // here to request the missing permissions, and then overriding
-//                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-//                    //                                          int[] grantResults)
-//                    // to handle the case where the user grants the permission. See the documentation
-//                    // for ActivityCompat#requestPermissions for more details.
-//                    return
-//                }
-//
                 val device = result.device
                 if (!foundDevices.contains(device) && device.name != null) {
                     foundDevices.add(device)
@@ -209,17 +128,6 @@ fun BluetoothScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Button(onClick = {
-            if (bluetoothAdapter != null && !bluetoothAdapter.isEnabled) {
-                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                enableBluetoothLauncher.launch(enableBtIntent)
-            } else {
-                Toast.makeText(context, "Bluetooth is already enabled", Toast.LENGTH_SHORT).show()
-            }
-        }) {
-            Text("Enable Bluetooth")
-        }
-
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(onClick = {

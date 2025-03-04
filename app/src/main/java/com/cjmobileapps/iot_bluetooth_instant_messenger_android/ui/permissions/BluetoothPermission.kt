@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 fun getBluetoothPermission(
     onBluetoothGranted: () -> Unit = { },
     onBluetoothDenied: (deniedReason : String?) -> Unit = { },
+    onEnableBluetooth: () -> Unit,
     coroutineScope: CoroutineScope,
     bluetoothPermissionsState: MultiplePermissionsState,
 ) {
@@ -26,7 +27,7 @@ fun getBluetoothPermission(
         if (bluetoothAdapter == null) {
             onBluetoothDenied.invoke("Device doesn't support Bluetooth")
         } else if (!bluetoothAdapter.isEnabled) {
-            onBluetoothDenied.invoke("Bluetooth is not enabled")
+            onEnableBluetooth.invoke()
         } else {
             onBluetoothGranted.invoke()
         }

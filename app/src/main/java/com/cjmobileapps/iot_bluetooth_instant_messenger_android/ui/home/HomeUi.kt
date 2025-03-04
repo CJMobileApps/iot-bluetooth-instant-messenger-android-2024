@@ -1,7 +1,12 @@
 package com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home
 
-import android.Manifest
+import android.bluetooth.BluetoothAdapter
 import android.content.Context
+import android.content.Intent
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -33,12 +38,9 @@ import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home.viewemod
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.permissions.getBluetoothMultiplePermissionsState
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.permissions.getBluetoothPermission
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.MultiplePermissionsState
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeUi(
     navController: NavController,
@@ -47,7 +49,6 @@ fun HomeUi(
     snackbarHostState: SnackbarHostState,
 ) {
     val context = LocalContext.current
-    val bluetoothPermissionsState = getBluetoothMultiplePermissionsState()
 
     Scaffold(
         topBar = { IotBluetoothInstantMessengerTopAppBar(navController) },
@@ -63,28 +64,14 @@ fun HomeUi(
                         navController = navController,
                         coroutineScope = coroutineScope,
                         context = context,
-                        bluetoothPermissionsState = bluetoothPermissionsState,
                     )
 
-                    if(state.checkBluetoothPermissions.value) {
-                        LaunchedEffect(
-                            key1 = bluetoothPermissionsState.allPermissionsGranted,
-                            key2 = bluetoothPermissionsState.shouldShowRationale
-                        ) {
-                            getBluetoothPermission(
-                                onBluetoothGranted = {
-                                    homeViewModel.goToScanBluetoothUi()
-                                    homeViewModel.resetCheckBluetoothPermissions()
-                                },
-                                onBluetoothDenied = { error ->
-                                    homeViewModel.showBluetoothErrorSnackbar(error)
-                                    homeViewModel.resetCheckBluetoothPermissions()
-                                },
-                                coroutineScope = coroutineScope,
-                                bluetoothPermissionsState = bluetoothPermissionsState,
-                            )
-                        }
-                    }
+                    HomeBluetoothPermissionsUi(
+                        context = context,
+                        homeLoadedState = state,
+                        homeViewModel = homeViewModel,
+                        coroutineScope = coroutineScope,
+                    )
                 }
             }
         }
@@ -109,6 +96,55 @@ fun HomeUi(
     }
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun HomeBluetoothPermissionsUi(
+    context: Context,
+    homeLoadedState: HomeViewModelImpl.HomeState.HomeLoadedState,
+    homeViewModel: HomeViewModel,
+    coroutineScope: CoroutineScope,
+) {
+    val bluetoothPermissionsState = getBluetoothMultiplePermissionsState()
+
+    val enableBluetoothLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Log.d("BLE", "Bluetooth enabled")
+            Toast.makeText(context, "Bluetooth Enabled", Toast.LENGTH_SHORT).show()
+            homeViewModel.checkBluetoothPermissions()
+        } else {
+            Log.e("BLE", "Bluetooth enabling failed or canceled")
+            Toast.makeText(context, "Bluetooth Enable Failed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    if (homeLoadedState.checkBluetoothPermissions.value) {
+        LaunchedEffect(
+            key1 = bluetoothPermissionsState.allPermissionsGranted,
+            key2 = bluetoothPermissionsState.shouldShowRationale
+        ) {
+            getBluetoothPermission(
+                onBluetoothGranted = {
+                    homeViewModel.goToScanBluetoothUi()
+                    homeViewModel.resetCheckBluetoothPermissions()
+                },
+                onBluetoothDenied = { error ->
+                    homeViewModel.showBluetoothErrorSnackbar(error)
+                    homeViewModel.resetCheckBluetoothPermissions()
+                },
+                onEnableBluetooth = {
+                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                    enableBluetoothLauncher.launch(enableBtIntent)
+                    homeViewModel.resetCheckBluetoothPermissions()
+                },
+                coroutineScope = coroutineScope,
+                bluetoothPermissionsState = bluetoothPermissionsState,
+            )
+        }
+    }
+}
+
 @Composable
 fun HomeSnackbar(
     message: String,
@@ -124,7 +160,6 @@ fun HomeSnackbar(
     }
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeLoadedUi(
     modifier: Modifier,
@@ -145,7 +180,7 @@ fun HomeLoadedUi(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(4.dp),
             onClick = {
-               homeViewModel.checkBluetoothPermissions()
+                homeViewModel.checkBluetoothPermissions()
             }) {
             Icon(
                 imageVector = Icons.Default.Bluetooth,

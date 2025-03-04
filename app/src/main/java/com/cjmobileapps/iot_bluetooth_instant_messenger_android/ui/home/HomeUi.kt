@@ -3,7 +3,6 @@ package com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,6 +39,7 @@ import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.permissions.g
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @Composable
 fun HomeUi(
@@ -60,10 +60,7 @@ fun HomeUi(
                     HomeLoadedUi(
                         modifier = Modifier.padding(innerPadding),
                         homeViewModel = homeViewModel,
-                        homeLoadedState = state,
                         navController = navController,
-                        coroutineScope = coroutineScope,
-                        context = context,
                     )
 
                     HomeBluetoothPermissionsUi(
@@ -104,17 +101,18 @@ fun HomeBluetoothPermissionsUi(
     homeViewModel: HomeViewModel,
     coroutineScope: CoroutineScope,
 ) {
+    val tag = "HomeBluetoothPermissionsUi"
     val bluetoothPermissionsState = getBluetoothMultiplePermissionsState()
 
     val enableBluetoothLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Log.d("BLE", "Bluetooth enabled")
+            Timber.d(tag, "Bluetooth enabled")
             Toast.makeText(context, "Bluetooth Enabled", Toast.LENGTH_SHORT).show()
             homeViewModel.checkBluetoothPermissions()
         } else {
-            Log.e("BLE", "Bluetooth enabling failed or canceled")
+            Timber.e(tag, "Bluetooth enabling failed or canceled")
             Toast.makeText(context, "Bluetooth Enable Failed", Toast.LENGTH_SHORT).show()
         }
     }
@@ -164,10 +162,7 @@ fun HomeSnackbar(
 fun HomeLoadedUi(
     modifier: Modifier,
     homeViewModel: HomeViewModel,
-    homeLoadedState: HomeViewModelImpl.HomeState.HomeLoadedState,
     navController: NavController,
-    coroutineScope: CoroutineScope,
-    context: Context,
 ) {
     Column(
         modifier = modifier

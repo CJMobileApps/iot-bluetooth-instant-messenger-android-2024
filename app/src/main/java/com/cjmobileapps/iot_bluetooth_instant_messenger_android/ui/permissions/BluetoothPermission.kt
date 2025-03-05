@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalPermissionsApi::class)
 fun getBluetoothPermission(
-    onBluetoothGranted: () -> Unit = { },
+    onBluetoothGranted: (bluetoothAdapter: BluetoothAdapter) -> Unit = { },
     onBluetoothDenied: (deniedReason : String?) -> Unit = { },
     onEnableBluetooth: () -> Unit,
     coroutineScope: CoroutineScope,
@@ -29,7 +29,7 @@ fun getBluetoothPermission(
         } else if (!bluetoothAdapter.isEnabled) {
             onEnableBluetooth.invoke()
         } else {
-            onBluetoothGranted.invoke()
+            onBluetoothGranted.invoke(bluetoothAdapter)
         }
     } else {
         if (bluetoothPermissionsState.shouldShowRationale)  {

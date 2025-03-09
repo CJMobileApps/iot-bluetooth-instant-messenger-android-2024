@@ -1,11 +1,15 @@
 package com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.scan_bluetooth.viewmodel
 
 import android.bluetooth.BluetoothAdapter
+import android.icu.util.TimeUnit
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.NavItem
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -64,7 +68,7 @@ class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBlueto
         val state = getState()
         if (state !is ScanBluetoothState.ScanBluetoothLoadedState) return
         state.bluetoothAdapter.value = bluetoothAdapter
-        state.isScanning.value = true
+        scanFor10Seconds(state)
     }
 
     override fun isBluetoothEnabled(): Boolean {
@@ -78,6 +82,15 @@ class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBlueto
         val state = getState()
         if (state !is ScanBluetoothState.ScanBluetoothLoadedState) return null
         return state.bluetoothAdapter.value
+    }
+
+    private fun scanFor10Seconds(state: ScanBluetoothState.ScanBluetoothLoadedState) {
+        state.isScanning.value = true
+        GlobalScope.launch {
+            delay(java.util.concurrent.TimeUnit.SECONDS.toMillis(5))
+            println("Coroutine Done!")
+            state.isScanning.value = false
+        }
     }
 
     sealed class ScanBluetoothState {

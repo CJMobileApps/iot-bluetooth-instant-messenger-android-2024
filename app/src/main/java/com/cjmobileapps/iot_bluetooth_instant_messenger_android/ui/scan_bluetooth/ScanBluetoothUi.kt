@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -49,8 +51,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-//TODO check/request permissions then do auto scan
-//TODO if not enabled tell them
 @Composable
 fun ScanBluetoothUi(
     navController: NavController,
@@ -61,7 +61,12 @@ fun ScanBluetoothUi(
     val context = LocalContext.current
 
     Scaffold(
-        topBar = { IotBluetoothInstantMessengerTopAppBar(navController) },
+        topBar = {
+            IotBluetoothInstantMessengerTopAppBar(
+                navController,
+                topBarTitle = stringResource(R.string.scan_bluetooth_devices),
+            )
+        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     ) { innerPadding ->
         Box {
@@ -180,7 +185,7 @@ fun ScanBluetoothLoadedUi(
 ) {
     val tag = "ScanBluetoothLoadedUi"
     val bluetoothAdapter = scanBluetoothViewModel.getBluetoothAdapter()
-    if(scanBluetoothViewModel.isBluetoothEnabled() && bluetoothAdapter != null) {
+    if (scanBluetoothViewModel.isBluetoothEnabled() && bluetoothAdapter != null) {
         Timber.e(tag, "Bluetooth enabled")
         ScanUi(
             modifier = modifier,
@@ -209,6 +214,7 @@ fun ScanUi(
     scanBluetoothState: ScanBluetoothViewModelImpl.ScanBluetoothState.ScanBluetoothLoadedState,
     context: Context,
 ) {
+    val tag = "ScanUi"
     val bluetoothLeScanner: BluetoothLeScanner? = bluetoothAdapter.bluetoothLeScanner
 
     val foundDevices = remember { mutableStateListOf<BluetoothDevice>() }
@@ -219,17 +225,17 @@ fun ScanUi(
                 val device = result.device
                 if (!foundDevices.contains(device) && device.name != null) {
                     foundDevices.add(device)
-                    Log.d("BLE", "Found device: ${device.name}")
+                    Timber.d(tag, " BLE Found device: ${device.name}")
                 }
             }
 
             override fun onScanFailed(errorCode: Int) {
-                Log.e("BLE", "Scan failed with error: $errorCode")
+                Timber.d(tag, " BLE Scan failed with error: $errorCode")
             }
         }
     }
 
-    if(scanBluetoothState.isScanning.value) {
+    if (scanBluetoothState.isScanning.value) {
         if (bluetoothLeScanner == null) {
             Toast.makeText(context, "BLE Scanner not available", Toast.LENGTH_SHORT).show()
             return
@@ -245,7 +251,7 @@ fun ScanUi(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 16.dp, start = 32.dp, end = 32.dp),
+            .padding(top = 16.dp, start = 32.dp, end = 32.dp, bottom = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
@@ -261,19 +267,25 @@ fun ScanUi(
     }
 }
 
+//TODO use a BluetoothDevice ui model
 @SuppressLint("MissingPermission")
 @Composable
 fun DeviceItem(device: BluetoothDevice, context: Context) {
-    Card(
-        modifier = Modifier
+    ElevatedCard(
+        modifier =
+        Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(top = 8.dp)
             .clickable {
                 Toast
                     .makeText(context, "BLE  Clicked on ${device.name}", Toast.LENGTH_SHORT)
                     .show()
                 Log.d("BLE", "Clicked on ${device.name}")
             },
+        colors =
+        CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(

@@ -18,6 +18,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBluetoothViewModel {
+    private val tag = ScanBluetoothViewModelImpl::class.java.simpleName
 
     private val snackbarState =
         mutableStateOf<ScanBluetoothSnackbarState>(ScanBluetoothSnackbarState.Idle)
@@ -55,7 +56,7 @@ class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBlueto
         state.scanBluetoothNavRouteUi.value = ScanBluetoothNavRouteUi.GoToChatUi
     }
 
-    override fun checkBluetoothPermissions() {
+    override fun setShouldCheckForBluetoothPermissions() {
         val state = getState()
         if (state !is ScanBluetoothState.ScanBluetoothLoadedState) return
         state.checkBluetoothPermissions.value = true
@@ -95,7 +96,7 @@ class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBlueto
         val foundDevices = state.foundDevicesList
         if (!foundDevices.contains(device) && device.name != null) {
             foundDevices.add(device)
-            Timber.d("HERETAG_", " BLE Found device: ${device.name}")
+            Timber.tag(tag).d("BLE Found device: ${device.name}")
         }
     }
 
@@ -105,6 +106,19 @@ class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBlueto
         state.foundDevicesList.clear()
     }
 
+    override fun isScanning(): Boolean {
+        val state = getState()
+        if (state !is ScanBluetoothState.ScanBluetoothLoadedState) return false
+        return state.isScanning.value
+    }
+
+
+    override fun checkBluetoothPermissions(): Boolean {
+        val state = getState()
+        if (state !is ScanBluetoothState.ScanBluetoothLoadedState) return false
+        return state.checkBluetoothPermissions.value
+    }
+
     private fun scanFor10Seconds(state: ScanBluetoothState.ScanBluetoothLoadedState) {
         state.isScanning.value = true
         //TODO fix this
@@ -112,6 +126,7 @@ class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBlueto
             delay(java.util.concurrent.TimeUnit.SECONDS.toMillis(5))
             println("Coroutine Done!")
             state.isScanning.value = false
+            //TODO after done scanning show list instead of just keep updating
         }
     }
 
@@ -124,7 +139,7 @@ class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBlueto
             ),
             val bluetoothAdapter: MutableState<BluetoothAdapter?> = mutableStateOf(null),
             val isScanning: MutableState<Boolean> = mutableStateOf(false),
-            val foundDevicesList: SnapshotStateList<BluetoothDevice> =  mutableStateListOf(),
+            val foundDevicesList: SnapshotStateList<BluetoothDevice> = mutableStateListOf(),
         ) : ScanBluetoothState()
     }
 

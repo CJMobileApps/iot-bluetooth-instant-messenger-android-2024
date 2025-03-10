@@ -18,7 +18,7 @@ interface ScanBluetoothViewModel {
 
     fun goToGoToChatUi()
 
-    fun checkBluetoothPermissions()
+    fun setShouldCheckForBluetoothPermissions()
 
     fun resetCheckBluetoothPermissions()
 
@@ -31,4 +31,8 @@ interface ScanBluetoothViewModel {
     fun foundDevice(device: BluetoothDevice)
 
     fun clearAllFoundDevices()
+
+    fun isScanning(): Boolean
+
+    fun checkBluetoothPermissions(): Boolean
 }

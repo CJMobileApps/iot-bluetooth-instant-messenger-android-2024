@@ -1,6 +1,7 @@
 package com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.scan_bluetooth
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
@@ -82,7 +83,6 @@ fun ScanBluetoothUi(
 
                     ScanBluetoothPermissionsUi(
                         context = context,
-                        scanBluetoothState = state,
                         scanBluetoothViewModel = scanBluetoothViewModel,
                         coroutineScope = coroutineScope,
                     )
@@ -114,7 +114,6 @@ fun ScanBluetoothUi(
 @Composable
 fun ScanBluetoothPermissionsUi(
     context: Context,
-    scanBluetoothState: ScanBluetoothViewModelImpl.ScanBluetoothState.ScanBluetoothLoadedState,
     scanBluetoothViewModel: ScanBluetoothViewModel,
     coroutineScope: CoroutineScope,
 ) {
@@ -124,17 +123,17 @@ fun ScanBluetoothPermissionsUi(
     val enableBluetoothLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Timber.d(tag, "Bluetooth enabled")
+        if (result.resultCode == Activity.RESULT_OK) {
+            Timber.tag(tag).d("Bluetooth enabled")
             Toast.makeText(context, "Bluetooth Enabled", Toast.LENGTH_SHORT).show()
-            scanBluetoothViewModel.checkBluetoothPermissions()
+            scanBluetoothViewModel.setShouldCheckForBluetoothPermissions()
         } else {
-            Timber.e(tag, "Bluetooth enabling failed or canceled")
+            Timber.tag(tag).e("Bluetooth enabling failed or canceled")
             Toast.makeText(context, "Bluetooth Enabled Failed", Toast.LENGTH_SHORT).show()
         }
     }
 
-    if (scanBluetoothState.checkBluetoothPermissions.value) {
+    if (scanBluetoothViewModel.checkBluetoothPermissions()) {
         LaunchedEffect(
             key1 = bluetoothPermissionsState.allPermissionsGranted,
             key2 = bluetoothPermissionsState.shouldShowRationale
@@ -195,7 +194,7 @@ fun ScanBluetoothLoadedUi(
             context = context,
         )
     } else {
-        Timber.e(tag, "Bluetooth not enabled")
+        Timber.tag(tag).e("Bluetooth not enabled")
     }
 
     when (val navigateRouteUiValue = scanBluetoothViewModel.getScanBluetoothNavRouteUiState()) {
@@ -227,12 +226,12 @@ fun ScanUi(
             }
 
             override fun onScanFailed(errorCode: Int) {
-                Timber.d(tag, " BLE Scan failed with error: $errorCode")
+                Timber.tag(tag).d("BLE Scan failed with error: $errorCode")
             }
         }
     }
 
-    if (scanBluetoothState.isScanning.value) {
+    if (scanBluetoothViewModel.isScanning()) {
         if (bluetoothLeScanner == null) {
             Toast.makeText(context, "BLE Scanner not available", Toast.LENGTH_SHORT).show()
             return
@@ -245,12 +244,12 @@ fun ScanUi(
         Toast.makeText(context, "Scan Stopped", Toast.LENGTH_SHORT).show()
     }
 
-   ScanDeviceItemsListUi(
-       modifier = modifier,
-       isScanning = scanBluetoothState.isScanning.value,
-       foundDevicesList = scanBluetoothState.foundDevicesList.toBluetoothDeviceUiModels(),
-       context = context,
-   )
+    ScanDeviceItemsListUi(
+        modifier = modifier,
+        isScanning = scanBluetoothViewModel.isScanning(),
+        foundDevicesList = scanBluetoothState.foundDevicesList.toBluetoothDeviceUiModels(),
+        context = context,
+    )
 }
 
 @Composable
@@ -311,7 +310,9 @@ fun DeviceItemUi(device: BluetoothDeviceUiModel, context: Context) {
                 Toast
                     .makeText(context, "BLE  Clicked on ${device.name}", Toast.LENGTH_SHORT)
                     .show()
-                Timber.tag(tag).d(" BLE Clicked on ${device.name}")
+                Timber
+                    .tag(tag)
+                    .d(" BLE Clicked on ${device.name}")
             },
         colors =
         CardDefaults.cardColors(

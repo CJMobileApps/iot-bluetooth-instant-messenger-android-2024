@@ -12,7 +12,7 @@ data class BluetoothDeviceUiModel(
 @SuppressLint("MissingPermission")
 fun BluetoothDevice.toBluetoothDeviceUiModel(): BluetoothDeviceUiModel {
     return BluetoothDeviceUiModel(
-        name = this.name,
+        name = this.name ?: "Unknown",
         address = this.address
     )
 }

@@ -218,8 +218,8 @@ fun ScanUi(
     val tag = "ScanUi"
     val bluetoothLeScanner: BluetoothLeScanner? = bluetoothAdapter.bluetoothLeScanner
 
-    val scanCallback = remember {
-        object : ScanCallback() {
+    LaunchedEffect(scanBluetoothViewModel.isScanning()) {
+        val scanCallback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
                 val device = result.device
                 scanBluetoothViewModel.foundDevice(device)
@@ -229,19 +229,19 @@ fun ScanUi(
                 Timber.tag(tag).d("BLE Scan failed with error: $errorCode")
             }
         }
-    }
 
-    if (scanBluetoothViewModel.isScanning()) {
-        if (bluetoothLeScanner == null) {
-            Toast.makeText(context, "BLE Scanner not available", Toast.LENGTH_SHORT).show()
-            return
+        if (scanBluetoothViewModel.isScanning()) {
+            if (bluetoothLeScanner == null) {
+                Toast.makeText(context, "BLE Scanner not available", Toast.LENGTH_SHORT).show()
+                return@LaunchedEffect
+            }
+            scanBluetoothViewModel.clearAllFoundDevices()
+            bluetoothLeScanner?.startScan(scanCallback)
+            Toast.makeText(context, "Scanning...", Toast.LENGTH_SHORT).show()
+        } else {
+            bluetoothLeScanner?.stopScan(scanCallback)
+            Toast.makeText(context, "Scan Stopped", Toast.LENGTH_SHORT).show()
         }
-        scanBluetoothViewModel.clearAllFoundDevices()
-        bluetoothLeScanner.startScan(scanCallback)
-        Toast.makeText(context, "Scanning...", Toast.LENGTH_SHORT).show()
-    } else {
-        bluetoothLeScanner?.stopScan(scanCallback)
-        Toast.makeText(context, "Scan Stopped", Toast.LENGTH_SHORT).show()
     }
 
     ScanDeviceItemsListUi(

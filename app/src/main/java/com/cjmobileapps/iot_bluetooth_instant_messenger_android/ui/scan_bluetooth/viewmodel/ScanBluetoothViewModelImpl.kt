@@ -8,11 +8,17 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.NavItem
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -20,11 +26,35 @@ import javax.inject.Inject
 class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBluetoothViewModel {
     private val tag = ScanBluetoothViewModelImpl::class.java.simpleName
 
+    private val compositeJob = Job()
+
+    private val foundDevicesFlow = MutableSharedFlow<BluetoothDevice>()
+
+    private val exceptionHandler =
+        CoroutineExceptionHandler { _, throwable ->
+            Timber.tag(tag)
+                .e("coroutineExceptionHandler() error occurred: $throwable \n ${throwable.message}")
+            snackbarState.value = ScanBluetoothSnackbarState.ShowGenericError()
+        }
+
+    private val coroutineContext =
+        compositeJob + Dispatchers.Main + exceptionHandler + SupervisorJob()
+
     private val snackbarState =
         mutableStateOf<ScanBluetoothSnackbarState>(ScanBluetoothSnackbarState.Idle)
 
     private val scanBluetoothState =
         mutableStateOf<ScanBluetoothState>(ScanBluetoothState.ScanBluetoothLoadedState())
+
+    init {
+        viewModelScope.launch(coroutineContext + Dispatchers.Default) {
+            foundDevicesFlow
+                .collect { device ->
+                    delay(50) //Slow down bluetooth device found firing off and a keep recomposing the screen over and over again
+                    addDevice(device)
+                }
+        }
+    }
 
     override fun getState() = scanBluetoothState.value
 
@@ -66,7 +96,6 @@ class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBlueto
         val state = getState()
         if (state !is ScanBluetoothState.ScanBluetoothLoadedState) return
         state.checkBluetoothPermissions.value = false
-
     }
 
     override fun enableBluetooth(bluetoothAdapter: BluetoothAdapter) {
@@ -91,12 +120,22 @@ class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBlueto
 
     @SuppressLint("MissingPermission")
     override fun foundDevice(device: BluetoothDevice) {
-        val state = getState()
-        if (state !is ScanBluetoothState.ScanBluetoothLoadedState) return
-        val foundDevices = state.foundDevicesList
-        if (!foundDevices.contains(device) && device.name != null) {
-            foundDevices.add(device)
-            Timber.tag(tag).d("BLE Found device: ${device.name}")
+        viewModelScope.launch(Dispatchers.Main) {
+            foundDevicesFlow.emit(device)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private suspend fun addDevice(device: BluetoothDevice) {
+        withContext(Dispatchers.Main) {
+            val state = getState()
+            if (state !is ScanBluetoothState.ScanBluetoothLoadedState) return@withContext
+            val foundDevices = state.foundDevicesList
+
+            if (!foundDevices.contains(device)) {
+                foundDevices.add(device)
+                Timber.tag(tag).d("BLE device added: ${device.name} : ${device.address} ")
+            }
         }
     }
 
@@ -121,12 +160,11 @@ class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBlueto
 
     private fun scanFor10Seconds(state: ScanBluetoothState.ScanBluetoothLoadedState) {
         state.isScanning.value = true
-        //TODO fix this
-        GlobalScope.launch {
-            delay(java.util.concurrent.TimeUnit.SECONDS.toMillis(5))
-            println("Coroutine Done!")
-            state.isScanning.value = false
-            //TODO after done scanning show list instead of just keep updating
+        viewModelScope.launch(coroutineContext) {
+            withContext(Dispatchers.IO) {
+                delay(java.util.concurrent.TimeUnit.SECONDS.toMillis(5))
+                state.isScanning.value = false
+            }
         }
     }
 

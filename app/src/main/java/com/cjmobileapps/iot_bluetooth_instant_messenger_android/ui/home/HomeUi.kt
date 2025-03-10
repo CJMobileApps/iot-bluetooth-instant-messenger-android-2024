@@ -28,14 +28,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.R
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.model.BluetoothDeviceUiModel
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.IotBluetoothInstantMessengerTopAppBar
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home.viewemodel.HomeViewModel
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home.viewemodel.HomeViewModelImpl
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.permissions.getBluetoothMultiplePermissionsState
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.permissions.getBluetoothPermission
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.scan_bluetooth.DeviceItemUi
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.theme.IotBluetoothInstantMessengerAndroid2024Theme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -195,4 +202,17 @@ fun HomeLoadedUi(
     }
 }
 
-// TODO add android previews
+@Preview(widthDp = 300, heightDp = 500)
+@Composable
+fun HomeLoadedUiPreview() {
+    val navController = rememberNavController()
+    val homeViewModel: HomeViewModel = hiltViewModel<HomeViewModelImpl>()
+
+    IotBluetoothInstantMessengerAndroid2024Theme {
+        HomeLoadedUi(
+            modifier = Modifier,
+            homeViewModel = homeViewModel,
+            navController = navController,
+        )
+    }
+}

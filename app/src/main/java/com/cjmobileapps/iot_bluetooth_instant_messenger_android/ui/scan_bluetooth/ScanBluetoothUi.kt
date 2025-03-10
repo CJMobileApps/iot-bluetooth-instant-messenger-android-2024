@@ -308,7 +308,11 @@ fun DeviceItemUi(device: BluetoothDeviceUiModel, context: Context) {
             .padding(top = 8.dp)
             .clickable {
                 Toast
-                    .makeText(context, "BLE  Clicked on ${device.name}", Toast.LENGTH_SHORT)
+                    .makeText(
+                        context,
+                        "BLE  Clicked on ${if (device.name != "Unknown") device.name else device.address}",
+                        Toast.LENGTH_SHORT
+                    )
                     .show()
                 Timber
                     .tag(tag)

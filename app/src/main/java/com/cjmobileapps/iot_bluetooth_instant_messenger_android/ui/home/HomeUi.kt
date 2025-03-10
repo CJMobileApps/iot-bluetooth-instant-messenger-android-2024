@@ -1,5 +1,11 @@
 package com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home
 
+import android.bluetooth.BluetoothAdapter
+import android.content.Context
+import android.content.Intent
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -20,15 +26,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.R
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.model.BluetoothDeviceUiModel
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.IotBluetoothInstantMessengerTopAppBar
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home.viewemodel.HomeViewModel
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home.viewemodel.HomeViewModelImpl
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.permissions.getBluetoothMultiplePermissionsState
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.permissions.getBluetoothPermission
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.scan_bluetooth.DeviceItemUi
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.theme.IotBluetoothInstantMessengerAndroid2024Theme
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @Composable
 fun HomeUi(
@@ -37,6 +55,8 @@ fun HomeUi(
     coroutineScope: CoroutineScope,
     snackbarHostState: SnackbarHostState,
 ) {
+    val context = LocalContext.current
+
     Scaffold(
         topBar = { IotBluetoothInstantMessengerTopAppBar(navController) },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -47,8 +67,14 @@ fun HomeUi(
                     HomeLoadedUi(
                         modifier = Modifier.padding(innerPadding),
                         homeViewModel = homeViewModel,
-                        homeLoadedState = state,
                         navController = navController,
+                    )
+
+                    HomeBluetoothPermissionsUi(
+                        context = context,
+                        homeLoadedState = state,
+                        homeViewModel = homeViewModel,
+                        coroutineScope = coroutineScope,
                     )
                 }
             }
@@ -74,6 +100,56 @@ fun HomeUi(
     }
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun HomeBluetoothPermissionsUi(
+    context: Context,
+    homeLoadedState: HomeViewModelImpl.HomeState.HomeLoadedState,
+    homeViewModel: HomeViewModel,
+    coroutineScope: CoroutineScope,
+) {
+    val tag = "HomeBluetoothPermissionsUi"
+    val bluetoothPermissionsState = getBluetoothMultiplePermissionsState()
+
+    val enableBluetoothLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Timber.d(tag, "Bluetooth enabled")
+            Toast.makeText(context, "Bluetooth Enabled", Toast.LENGTH_SHORT).show()
+            homeViewModel.checkBluetoothPermissions()
+        } else {
+            Timber.e(tag, "Bluetooth enabling failed or canceled")
+            Toast.makeText(context, "Bluetooth Enable Failed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    if (homeLoadedState.checkBluetoothPermissions.value) {
+        LaunchedEffect(
+            key1 = bluetoothPermissionsState.allPermissionsGranted,
+            key2 = bluetoothPermissionsState.shouldShowRationale
+        ) {
+            getBluetoothPermission(
+                onBluetoothGranted = {
+                    homeViewModel.goToScanBluetoothUi()
+                    homeViewModel.resetCheckBluetoothPermissions()
+                },
+                onBluetoothDenied = { error ->
+                    homeViewModel.showBluetoothErrorSnackbar(error)
+                    homeViewModel.resetCheckBluetoothPermissions()
+                },
+                onEnableBluetooth = {
+                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                    enableBluetoothLauncher.launch(enableBtIntent)
+                    homeViewModel.resetCheckBluetoothPermissions()
+                },
+                coroutineScope = coroutineScope,
+                bluetoothPermissionsState = bluetoothPermissionsState,
+            )
+        }
+    }
+}
+
 @Composable
 fun HomeSnackbar(
     message: String,
@@ -93,7 +169,6 @@ fun HomeSnackbar(
 fun HomeLoadedUi(
     modifier: Modifier,
     homeViewModel: HomeViewModel,
-    homeLoadedState: HomeViewModelImpl.HomeState.HomeLoadedState,
     navController: NavController,
 ) {
     Column(
@@ -106,7 +181,9 @@ fun HomeLoadedUi(
         Button(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(4.dp),
-            onClick = { homeViewModel.goToScanBluetoothUi() }) {
+            onClick = {
+                homeViewModel.checkBluetoothPermissions()
+            }) {
             Icon(
                 imageVector = Icons.Default.Bluetooth,
                 contentDescription = "Bluetooth"
@@ -125,4 +202,17 @@ fun HomeLoadedUi(
     }
 }
 
-// TODO add android previews
+@Preview(widthDp = 300, heightDp = 500)
+@Composable
+fun HomeLoadedUiPreview() {
+    val navController = rememberNavController()
+    val homeViewModel: HomeViewModel = hiltViewModel<HomeViewModelImpl>()
+
+    IotBluetoothInstantMessengerAndroid2024Theme {
+        HomeLoadedUi(
+            modifier = Modifier,
+            homeViewModel = homeViewModel,
+            navController = navController,
+        )
+    }
+}

@@ -72,6 +72,8 @@ dependencies {
     implementation(libs.coil.compose)
     //TODO add below to libs
     implementation("androidx.compose.material:material-icons-extended:1.5.4") // Icons
+    implementation("com.google.accompanist:accompanist-permissions:0.30.1")
+
 
     // Android Compose Testing
     androidTestImplementation(libs.junit)

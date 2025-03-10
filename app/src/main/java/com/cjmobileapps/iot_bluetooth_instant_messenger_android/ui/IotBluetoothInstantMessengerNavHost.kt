@@ -11,6 +11,8 @@ import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home.HomeUi
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home.viewemodel.HomeViewModel
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.home.viewemodel.HomeViewModelImpl
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.scan_bluetooth.ScanBluetoothUi
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.scan_bluetooth.viewmodel.ScanBluetoothViewModel
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.scan_bluetooth.viewmodel.ScanBluetoothViewModelImpl
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
@@ -32,9 +34,13 @@ fun NavigationGraph(
         }
 
         composable(NavItem.ScanBluetooth.navRoute) {
+            val scanBluetoothViewModel: ScanBluetoothViewModel = hiltViewModel<ScanBluetoothViewModelImpl>()
 
             ScanBluetoothUi(
-                navController = navController
+                navController = navController,
+                scanBluetoothViewModel = scanBluetoothViewModel,
+                coroutineScope = coroutineScope,
+                snackbarHostState = snackbarHostState,
             )
         }
     }

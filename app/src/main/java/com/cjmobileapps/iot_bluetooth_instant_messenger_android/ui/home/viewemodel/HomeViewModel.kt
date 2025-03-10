@@ -5,6 +5,8 @@ interface HomeViewModel {
 
     fun getSnackbarState(): HomeViewModelImpl.HomeSnackbarState
 
+    fun showBluetoothErrorSnackbar(errorMessage : String?)
+
     fun resetSnackbarState()
 
     fun getHomeNavRouteUiState(): HomeViewModelImpl.HomeNavRouteUi
@@ -12,4 +14,8 @@ interface HomeViewModel {
     fun resetNavRouteUiToIdle()
 
     fun goToScanBluetoothUi()
+
+    fun checkBluetoothPermissions()
+
+    fun resetCheckBluetoothPermissions()
 }

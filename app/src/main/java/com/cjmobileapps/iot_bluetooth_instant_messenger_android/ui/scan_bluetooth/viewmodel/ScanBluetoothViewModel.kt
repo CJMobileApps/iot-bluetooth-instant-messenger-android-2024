@@ -1,6 +1,7 @@
 package com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.scan_bluetooth.viewmodel
 
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 
 interface ScanBluetoothViewModel {
     fun getState(): ScanBluetoothViewModelImpl.ScanBluetoothState
@@ -26,4 +27,8 @@ interface ScanBluetoothViewModel {
     fun isBluetoothEnabled(): Boolean
 
     fun getBluetoothAdapter(): BluetoothAdapter?
+
+    fun foundDevice(device: BluetoothDevice)
+
+    fun clearAllFoundDevices()
 }

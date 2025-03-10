@@ -2,13 +2,11 @@ package com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.scan_bluetoo
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,7 +20,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
@@ -32,20 +29,23 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.R
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.model.BluetoothDeviceUiModel
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.model.toBluetoothDeviceUiModels
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.IotBluetoothInstantMessengerTopAppBar
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.permissions.getBluetoothMultiplePermissionsState
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.permissions.getBluetoothPermission
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.scan_bluetooth.viewmodel.ScanBluetoothViewModel
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.scan_bluetooth.viewmodel.ScanBluetoothViewModelImpl
+import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.theme.IotBluetoothInstantMessengerAndroid2024Theme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -191,6 +191,7 @@ fun ScanBluetoothLoadedUi(
             modifier = modifier,
             bluetoothAdapter = bluetoothAdapter,
             scanBluetoothState = scanBluetoothState,
+            scanBluetoothViewModel = scanBluetoothViewModel,
             context = context,
         )
     } else {
@@ -212,21 +213,17 @@ fun ScanUi(
     modifier: Modifier,
     bluetoothAdapter: BluetoothAdapter,
     scanBluetoothState: ScanBluetoothViewModelImpl.ScanBluetoothState.ScanBluetoothLoadedState,
+    scanBluetoothViewModel: ScanBluetoothViewModel,
     context: Context,
 ) {
     val tag = "ScanUi"
     val bluetoothLeScanner: BluetoothLeScanner? = bluetoothAdapter.bluetoothLeScanner
 
-    val foundDevices = remember { mutableStateListOf<BluetoothDevice>() }
-
     val scanCallback = remember {
         object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
                 val device = result.device
-                if (!foundDevices.contains(device) && device.name != null) {
-                    foundDevices.add(device)
-                    Timber.d(tag, " BLE Found device: ${device.name}")
-                }
+                scanBluetoothViewModel.foundDevice(device)
             }
 
             override fun onScanFailed(errorCode: Int) {
@@ -240,7 +237,7 @@ fun ScanUi(
             Toast.makeText(context, "BLE Scanner not available", Toast.LENGTH_SHORT).show()
             return
         }
-        foundDevices.clear()
+        scanBluetoothViewModel.clearAllFoundDevices()
         bluetoothLeScanner.startScan(scanCallback)
         Toast.makeText(context, "Scanning...", Toast.LENGTH_SHORT).show()
     } else {
@@ -248,6 +245,21 @@ fun ScanUi(
         Toast.makeText(context, "Scan Stopped", Toast.LENGTH_SHORT).show()
     }
 
+   ScanDeviceItemsListUi(
+       modifier = modifier,
+       isScanning = scanBluetoothState.isScanning.value,
+       foundDevicesList = scanBluetoothState.foundDevicesList.toBluetoothDeviceUiModels(),
+       context = context,
+   )
+}
+
+@Composable
+fun ScanDeviceItemsListUi(
+    modifier: Modifier = Modifier,
+    isScanning: Boolean,
+    foundDevicesList: List<BluetoothDeviceUiModel>,
+    context: Context,
+) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -256,21 +268,40 @@ fun ScanUi(
         verticalArrangement = Arrangement.Top
     ) {
         Spacer(modifier = Modifier.height(16.dp))
-        Text(if (scanBluetoothState.isScanning.value) "Scanning..." else "Done Scanning")
+        Text(if (isScanning) "Scanning..." else "Done Scanning")
         Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn {
-            items(foundDevices) { device ->
-                DeviceItem(device, context)
+            items(foundDevicesList) { device ->
+                DeviceItemUi(device, context)
             }
         }
     }
 }
 
-//TODO use a BluetoothDevice ui model
+@PreviewLightDark
+@Composable
+fun ScanDeviceItemsListUiPreview() {
+    val deviceUiModels = listOf(
+        BluetoothDeviceUiModel(name = "CJMobileApps Phone", address = "123456"),
+        BluetoothDeviceUiModel(name = "CJMobileApps Other Phone", address = "789")
+    )
+
+    val context = LocalContext.current
+
+    IotBluetoothInstantMessengerAndroid2024Theme {
+        ScanDeviceItemsListUi(
+            isScanning = true,
+            foundDevicesList = deviceUiModels,
+            context = context,
+        )
+    }
+}
+
 @SuppressLint("MissingPermission")
 @Composable
-fun DeviceItem(device: BluetoothDevice, context: Context) {
+fun DeviceItemUi(device: BluetoothDeviceUiModel, context: Context) {
+    val tag = "DeviceItem"
     ElevatedCard(
         modifier =
         Modifier
@@ -280,7 +311,7 @@ fun DeviceItem(device: BluetoothDevice, context: Context) {
                 Toast
                     .makeText(context, "BLE  Clicked on ${device.name}", Toast.LENGTH_SHORT)
                     .show()
-                Log.d("BLE", "Clicked on ${device.name}")
+                Timber.tag(tag).d(" BLE Clicked on ${device.name}")
             },
         colors =
         CardDefaults.cardColors(
@@ -289,10 +320,21 @@ fun DeviceItem(device: BluetoothDevice, context: Context) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Device: ${device.name ?: "Unknown"}",
+                text = "Device: ${device.name}",
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(text = "Address: ${device.address}", style = MaterialTheme.typography.bodyMedium)
         }
+    }
+}
+
+@PreviewLightDark
+@Composable
+fun DeviceItemUiPreview() {
+    val deviceUiModel = BluetoothDeviceUiModel(name = "CJMobileApps Phone", address = "123456")
+    val context = LocalContext.current
+
+    IotBluetoothInstantMessengerAndroid2024Theme {
+        DeviceItemUi(deviceUiModel, context)
     }
 }

@@ -1,15 +1,19 @@
 package com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.scan_bluetooth.viewmodel
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
-import android.icu.util.TimeUnit
+import android.bluetooth.BluetoothDevice
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import com.cjmobileapps.iot_bluetooth_instant_messenger_android.ui.NavItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -84,8 +88,26 @@ class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBlueto
         return state.bluetoothAdapter.value
     }
 
+    @SuppressLint("MissingPermission")
+    override fun foundDevice(device: BluetoothDevice) {
+        val state = getState()
+        if (state !is ScanBluetoothState.ScanBluetoothLoadedState) return
+        val foundDevices = state.foundDevicesList
+        if (!foundDevices.contains(device) && device.name != null) {
+            foundDevices.add(device)
+            Timber.d("HERETAG_", " BLE Found device: ${device.name}")
+        }
+    }
+
+    override fun clearAllFoundDevices() {
+        val state = getState()
+        if (state !is ScanBluetoothState.ScanBluetoothLoadedState) return
+        state.foundDevicesList.clear()
+    }
+
     private fun scanFor10Seconds(state: ScanBluetoothState.ScanBluetoothLoadedState) {
         state.isScanning.value = true
+        //TODO fix this
         GlobalScope.launch {
             delay(java.util.concurrent.TimeUnit.SECONDS.toMillis(5))
             println("Coroutine Done!")
@@ -96,12 +118,13 @@ class ScanBluetoothViewModelImpl @Inject constructor() : ViewModel(), ScanBlueto
     sealed class ScanBluetoothState {
         data class ScanBluetoothLoadedState(
             val checkBluetoothPermissions: MutableState<Boolean> = mutableStateOf(true),
-            val isBlueToothEnabled: MutableState<Boolean> = mutableStateOf(true), //TODO state methods for this
+            val isBlueToothEnabled: MutableState<Boolean> = mutableStateOf(true),
             val scanBluetoothNavRouteUi: MutableState<ScanBluetoothNavRouteUi> = mutableStateOf(
                 ScanBluetoothNavRouteUi.Idle
             ),
             val bluetoothAdapter: MutableState<BluetoothAdapter?> = mutableStateOf(null),
-            val isScanning: MutableState<Boolean> = mutableStateOf(false)
+            val isScanning: MutableState<Boolean> = mutableStateOf(false),
+            val foundDevicesList: SnapshotStateList<BluetoothDevice> =  mutableStateListOf(),
         ) : ScanBluetoothState()
     }
 
